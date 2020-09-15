@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop" xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       https://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/aop
+       https://www.springframework.org/schema/aop/spring-aop.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+<!--属性文件-->
+    <context:property-placeholder location="classpath:jdbc.properties"/>
+
+<!--组件扫描器-->
+    <context:component-scan base-package="service"/>
+<!--    连接池-->
+    <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+        <property name="jdbcUrl" value="${jdbc.url}"/>
+        <property name="password" value="${jdbc.password}"/>
+        <property name="user" value="${jdbc.username}"/>
+        <property name="driverClass" value="${jdbc.driver}"/>
+    </bean>
+
+<!--    SqlSessionFactory-->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource"/>
+        <property name="configLocation" value="classpath:mybatisConfig.xml"/>
+    </bean>
+<!--创建一个batch的SqlSession-->
+    <bean id="SqlSessionBatch" class="org.mybatis.spring.SqlSessionTemplate">
+        <constructor-arg name="sqlSessionFactory" ref="sqlSessionFactory"/>
+        <constructor-arg name="executorType" value="BATCH"/>
+    </bean>
+
+
+<!--    自动mapper-->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <!--    扫描dao接口    -->
+        <property name="basePackage" value="dao"/>
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"/>
+    </bean>
+
+<!--    事物控制-->
+    <!--  事物管理器  -->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <!--    控制数据源    -->
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+
+    <!--  基于配置的事物增强,事物如何切入  -->
+    <tx:advice id="txAdvice" transaction-manager="transactionManager">
+        <tx:attributes>
+            <!--所有get开头的方法都是只读的-->
+            <tx:method name="get*" read-only="true"/>
+        </tx:attributes>
+
+    </tx:advice>
+
+    <aop:config>
+        <aop:pointcut id="allTxPoint" expression="execution(* service..*(..))"/>
+        <aop:advisor advice-ref="txAdvice" pointcut-ref="allTxPoint"/>
+    </aop:config>
+</beans>
