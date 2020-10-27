@@ -257,9 +257,7 @@
                     //数据展示
                     showEmpInfo(data);
                 }
-
             });
-
         }
         //显示修改页面的默认信息
         function showEmpInfo(data){
